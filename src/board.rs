@@ -1,9 +1,18 @@
 use colored::Colorize;
 
-use crate::piece::PieceType;
+use crate::piece::{Color, PieceType};
 
 pub struct Board {
     bitboards: [u64; 12],
+
+    side_to_move: Color,
+    turn: u32,
+    white_king_castling: bool,
+    white_queen_castling: bool,
+    black_king_castling: bool,
+    black_queen_castling: bool,
+    // TODO en_passant:
+    // TODO last_fifty_turn:
 }
 
 const COLOR_SWITCH: usize = 6;
@@ -30,8 +39,25 @@ impl Board {
                 0x0800000000000000, // black queen
                 0x1000000000000000, // black king
             ],
+
+            side_to_move: Color::White,
+            turn: 0,
+            white_king_castling: true,
+            white_queen_castling: true,
+            black_king_castling: true,
+            black_queen_castling: true,
         }
     }
+
+    // TODO
+    // fen constructor
+    // generate_legal_moves
+    // is_move_legal
+    // do_move
+    // is_check
+    // is_checkmate
+    // is_draw
+    // operator[]: piece type and color from position
 }
 
 impl std::fmt::Display for Board {
