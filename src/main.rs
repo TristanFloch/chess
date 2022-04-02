@@ -1,7 +1,6 @@
-mod board;
-mod piece;
+mod engine;
 
-use board::Board;
+use crate::engine::board::Board;
 
 fn main() {
     let b = Board::new();

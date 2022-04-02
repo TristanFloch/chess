@@ -1,6 +1,5 @@
+use crate::engine::piece::{PieceType, Color};
 use colored::Colorize;
-
-use crate::piece::{Color, PieceType};
 
 pub struct Board {
     bitboards: [u64; 12],
