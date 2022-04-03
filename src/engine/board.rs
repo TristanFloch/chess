@@ -1,8 +1,8 @@
-use crate::engine::piece::{PieceType, Color};
+use crate::engine::piece::{Color, PieceType};
 use colored::Colorize;
 
 pub struct Board {
-    bitboards: [u64; 12],
+    pub bitboards: [u64; 12],
 
     side_to_move: Color,
     turn: u32,
@@ -87,5 +87,24 @@ impl std::fmt::Display for Board {
             writeln!(f)?;
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    impl Board {
+        pub fn empty() -> Self {
+            Self {
+                bitboards: [0; 12],
+                side_to_move: Color::White,
+                turn: 0,
+                white_king_castling: true,
+                white_queen_castling: true,
+                black_king_castling: true,
+                black_queen_castling: true,
+            }
+        }
     }
 }

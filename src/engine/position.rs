@@ -1,4 +1,4 @@
-#[derive(PartialEq)]
+#[derive(PartialEq, Copy, Clone)]
 pub enum Rank {
     ONE = 0,
     TWO,
@@ -10,7 +10,7 @@ pub enum Rank {
     EIGHT,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Copy, Clone)]
 pub enum File {
     A = 0,
     B,
@@ -24,6 +24,6 @@ pub enum File {
 
 #[derive(PartialEq)]
 pub struct Position {
-    rank: Rank,
-    file: File,
+    pub rank: Rank,
+    pub file: File,
 }

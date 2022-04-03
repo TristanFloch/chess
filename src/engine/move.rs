@@ -1,8 +1,8 @@
-use crate::engine::position::Position;
 use crate::engine::piece::PieceType;
+use crate::engine::position::Position;
 
 pub struct Move {
-    start: Position,
-    end: Position,
-    piece_type: PieceType,
+    pub start: Position,
+    pub end: Position,
+    pub piece_type: PieceType,
 }
