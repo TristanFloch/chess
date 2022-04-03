@@ -1,4 +1,5 @@
 use crate::engine::piece::{Color, PieceType};
+use crate::engine::position::Position;
 use colored::Colorize;
 
 pub struct Board {
@@ -56,10 +57,26 @@ impl Board {
     // is_check
     // is_checkmate
     // is_draw
-    // operator[]: piece type and color from position
 }
 
-impl std::fmt::Display for Board {
+impl std::ops::Index<Position> for Board {
+    type Output = (PieceType, Color);
+
+    // operator[]: piece type and color from position
+    fn index(&self, pos: Position) -> &Self::Output {
+        todo!();
+    }
+}
+
+impl std::ops::Index<PieceType> for Board {
+    type Output = u64;
+
+    fn index(&self, piece: PieceType) -> &Self::Output {
+        &self.bitboards[self.side_to_move as usize * COLOR_SWITCH + piece as usize]
+    }
+}
+
+impl std::fmt::Debug for Board {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut repr = [(); 8 * 8].map(|_| ".".normal());
 

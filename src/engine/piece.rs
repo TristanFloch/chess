@@ -1,3 +1,4 @@
+#[derive(Copy, Clone)]
 pub enum Color {
     White = 0,
     Black,
@@ -13,6 +14,7 @@ impl From<usize> for Color {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
 pub enum PieceType {
     Pawn = 0,
     Knight,
