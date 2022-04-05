@@ -3,27 +3,6 @@ use crate::engine::piece::PieceType;
 use crate::engine::position::Position;
 use crate::engine::r#move::Move;
 
-fn south_one(b: u64) -> u64 {
-    b >> 8
-}
-
-fn north_one(b: u64) -> u64 {
-    b << 8
-}
-
-const NOT_A_FILE: u64 = 0xfefefefefefefefe; // ~0x0101010101010101
-const NOT_H_FILE: u64 = 0x7f7f7f7f7f7f7f7f; // ~0x8080808080808080
-
-// post shift masks
-
-fn east_one(b: u64) -> u64 {
-    (b << 1) & NOT_A_FILE
-}
-
-fn west_one(b: u64) -> u64 {
-    (b >> 1) & NOT_H_FILE
-}
-
 pub fn generate_pawn_moves(board: &Board) -> Vec<Move> {
     todo!();
 }
@@ -48,9 +27,12 @@ pub fn generate_king_moves(board: &Board) -> Vec<Move> {
     let mut king = board[PieceType::King];
     let start = Position::from(king);
 
-    let mut attacks = east_one(king) | west_one(king);
+    const NOT_A_FILE: u64 = 0xfefefefefefefefe; // ~0x0101010101010101
+    const NOT_H_FILE: u64 = 0x7f7f7f7f7f7f7f7f; // ~0x8080808080808080
+
+    let mut attacks = (king << 1) & NOT_A_FILE | (king >> 1) & NOT_H_FILE;
     king |= attacks;
-    attacks |= north_one(king) | south_one(king);
+    attacks |= king << 8 | king >> 8;
 
     let mut v = Vec::with_capacity(attacks.count_ones() as usize);
     while attacks != 0 {
@@ -70,7 +52,7 @@ mod tests {
     use super::*;
 
     fn moves_to_u64(moves: &Vec<Move>) -> u64 {
-        moves.iter().fold(0u64, |b, m| {
+        moves.iter().fold(0, |b, m| {
             b | (1 << (m.end.rank as u8 * 8 + m.end.file as u8))
         })
     }
