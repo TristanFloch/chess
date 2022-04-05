@@ -2,6 +2,7 @@ use crate::engine::board::Board;
 use crate::engine::piece::PieceType;
 use crate::engine::position::Position;
 use crate::engine::r#move::Move;
+use crate::engine::bits::BitsOperations;
 
 fn south_one(b: u64) -> u64 {
     b >> 8
@@ -59,7 +60,7 @@ pub fn generate_king_moves(board: &Board) -> Vec<Move> {
             end: Position::from(attacks),
             piece_type: PieceType::King,
         });
-        attacks &= u64::MAX >> (attacks.leading_zeros() + 1);
+        attacks = attacks.toggle_bit(attacks.msb_index());
     }
 
     v
