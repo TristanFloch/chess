@@ -1,3 +1,5 @@
+use crate::engine::bits::BitsOperations;
+
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum Rank {
     One = 0,
@@ -62,8 +64,7 @@ pub struct Position {
 
 impl From<u64> for Position {
     fn from(b: u64) -> Self {
-        let index = (u64::BITS - (u64::MAX ^ b).leading_ones() - 1) as usize;
-        // let index = (b & !(b - 1)).trailing_zeros() as usize; // msb index
+        let index = b.msb_index();
 
         Position {
             rank: (index / 8).into(),
