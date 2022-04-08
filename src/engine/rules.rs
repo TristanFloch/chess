@@ -1,8 +1,8 @@
+use crate::engine::bits::BitsOperations;
 use crate::engine::board::Board;
 use crate::engine::piece::PieceType;
 use crate::engine::position::Position;
 use crate::engine::r#move::Move;
-use crate::engine::bits::BitsOperations;
 
 fn south_one(b: u64) -> u64 {
     b >> 8
@@ -30,7 +30,33 @@ pub fn generate_pawn_moves(board: &Board) -> Vec<Move> {
 }
 
 pub fn generate_knight_moves(board: &Board) -> Vec<Move> {
-    todo!();
+    let mut knights = board[PieceType::Knight];
+    let mut v = Vec::new();
+
+    while knights != 0 {
+        let pos = Position::from(knights);
+
+        let mut east = east_one(knights);
+        let mut west = west_one(knights);
+        let mut attacks = (east | west) << 16;
+        attacks |= (east | west) >> 16;
+        east = east_one(east);
+        west = west_one(west);
+        attacks |= (east | west) << 8;
+        attacks |= (east | west) >> 8;
+
+        while attacks != 0 {
+            v.push(Move {
+                start: pos.clone(),
+                end: attacks.into(),
+                piece_type: PieceType::Knight,
+            });
+            attacks = attacks.toggle_bit(attacks.msb_index());
+        }
+        knights = knights.toggle_bit(knights.msb_index()); // TODO use trailing zeros
+    }
+
+    v
 }
 
 pub fn generate_bishop_moves(board: &Board) -> Vec<Move> {
@@ -60,7 +86,7 @@ pub fn generate_king_moves(board: &Board) -> Vec<Move> {
             end: Position::from(attacks),
             piece_type: PieceType::King,
         });
-        attacks = attacks.toggle_bit(attacks.msb_index());
+        attacks = attacks.toggle_bit(attacks.msb_index()); // TODO use trailing zeros
     }
 
     v
@@ -107,5 +133,22 @@ mod tests {
         board.bitboards[PieceType::King as usize] = 0x1000000000000000; // e8
         res = generate_king_moves(&board);
         assert_eq!(0x2838000000000000, moves_to_u64(&res));
+    }
+
+    #[test]
+    fn knight_moves() {
+        let mut board = Board::empty();
+
+        board.bitboards[PieceType::Knight as usize] = 0x42; // initial white pos
+        let mut res = generate_knight_moves(&board);
+        assert_eq!(0xa51800, moves_to_u64(&res));
+
+        board.bitboards[PieceType::Knight as usize] = 0x400000000; // one knight on f5
+        res = generate_knight_moves(&board);
+        assert_eq!(0xa1100110a0000, moves_to_u64(&res));
+
+        board.bitboards[PieceType::Knight as usize] = 0; // no knight
+        res = generate_knight_moves(&board);
+        assert!(res.is_empty());
     }
 }
