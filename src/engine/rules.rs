@@ -14,6 +14,8 @@ fn north_one(b: u64) -> u64 {
 
 const NOT_A_FILE: u64 = 0xfefefefefefefefe;
 const NOT_H_FILE: u64 = 0x7f7f7f7f7f7f7f7f;
+const ONE_RANK: u64 = 0xff;
+const H_FILE: u64 = 0x101010101010101;
 
 // post shift masks
 
@@ -64,7 +66,30 @@ pub fn generate_bishop_moves(board: &Board) -> Vec<Move> {
 }
 
 pub fn generate_rook_moves(board: &Board) -> Vec<Move> {
-    todo!();
+    let mut rooks = board[PieceType::Rook];
+
+    let mut v = Vec::new();
+
+    while rooks != 0 {
+        let current = 1u64 << rooks.lsb_index();
+        let pos = Position::from(current);
+
+        let mut attacks =
+            ((ONE_RANK << (8 * pos.rank as usize)) | (H_FILE << pos.file as usize)) ^ current;
+
+        while attacks != 0 {
+            v.push(Move {
+                start: pos.clone(),
+                end: attacks.into(),
+                piece_type: PieceType::Rook,
+            });
+            attacks = attacks.toggle_bit(attacks.lsb_index());
+        }
+
+        rooks = rooks.toggle_bit(rooks.lsb_index());
+    }
+
+    v
 }
 
 pub fn generate_queen_moves(board: &Board) -> Vec<Move> {
@@ -95,6 +120,7 @@ pub fn generate_king_moves(board: &Board) -> Vec<Move> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::board::tests::print_u64;
 
     fn moves_to_u64(moves: &Vec<Move>) -> u64 {
         moves.iter().fold(0u64, |b, m| {
@@ -104,14 +130,7 @@ mod tests {
 
     fn print_moves(moves: &Vec<Move>) {
         let board = moves_to_u64(&moves);
-
-        for i in (0..8).rev() {
-            for j in 0..8 {
-                let index = i * 8 + j;
-                print!("{} ", if board & (1 << index) != 0 { '1' } else { '.' });
-            }
-            println!();
-        }
+        print_u64(board);
     }
 
     #[test]
@@ -150,5 +169,15 @@ mod tests {
         board.bitboards[PieceType::Knight as usize] = 0; // no knight
         res = generate_knight_moves(&board);
         assert!(res.is_empty());
+    }
+
+    #[test]
+    fn rook_moves() {
+        let mut board = Board::empty();
+
+        board.bitboards[PieceType::Rook as usize] = 0x200100000000; // C6 & H5
+        let mut res = generate_rook_moves(&board);
+        assert_eq!(0x2121dffe21212121, moves_to_u64(&res));
+        assert_eq!(28, res.len());
     }
 }

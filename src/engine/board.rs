@@ -108,7 +108,7 @@ impl std::fmt::Debug for Board {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
 
     impl Board {
@@ -122,6 +122,16 @@ mod tests {
                 black_king_castling: true,
                 black_queen_castling: true,
             }
+        }
+    }
+
+    pub fn print_u64(b: u64) {
+        for i in (0..8).rev() {
+            for j in 0..8 {
+                let index = i * 8 + j;
+                print!("{} ", if b & (1 << index) != 0 { '1' } else { '.' });
+            }
+            println!();
         }
     }
 }
