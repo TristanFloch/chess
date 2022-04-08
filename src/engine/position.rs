@@ -64,7 +64,11 @@ pub struct Position {
 
 impl From<u64> for Position {
     fn from(b: u64) -> Self {
-        let index = b.msb_index();
+        if b == 0 {
+            panic!("attempt to create position from null unsigned");
+        }
+
+        let index = b.lsb_index();
 
         Position {
             rank: (index / 8).into(),

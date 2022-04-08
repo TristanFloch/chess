@@ -12,8 +12,8 @@ fn north_one(b: u64) -> u64 {
     b << 8
 }
 
-const NOT_A_FILE: u64 = 0xfefefefefefefefe; // ~0x0101010101010101
-const NOT_H_FILE: u64 = 0x7f7f7f7f7f7f7f7f; // ~0x8080808080808080
+const NOT_A_FILE: u64 = 0xfefefefefefefefe;
+const NOT_H_FILE: u64 = 0x7f7f7f7f7f7f7f7f;
 
 // post shift masks
 
@@ -51,9 +51,9 @@ pub fn generate_knight_moves(board: &Board) -> Vec<Move> {
                 end: attacks.into(),
                 piece_type: PieceType::Knight,
             });
-            attacks = attacks.toggle_bit(attacks.msb_index());
+            attacks = attacks.toggle_bit(attacks.lsb_index());
         }
-        knights = knights.toggle_bit(knights.msb_index()); // TODO use trailing zeros
+        knights = knights.toggle_bit(knights.lsb_index());
     }
 
     v
@@ -83,10 +83,10 @@ pub fn generate_king_moves(board: &Board) -> Vec<Move> {
     while attacks != 0 {
         v.push(Move {
             start: start.clone(),
-            end: Position::from(attacks),
+            end: attacks.into(),
             piece_type: PieceType::King,
         });
-        attacks = attacks.toggle_bit(attacks.msb_index()); // TODO use trailing zeros
+        attacks = attacks.toggle_bit(attacks.lsb_index());
     }
 
     v
