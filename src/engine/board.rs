@@ -30,14 +30,14 @@ impl Board {
                 0x0000000000000042, // white knights
                 0x0000000000000024, // white bishops
                 0x0000000000000081, // white rooks
-                0x0000000000000008, // white queen
-                0x0000000000000010, // white king
+                0x0000000000000010, // white queen
+                0x0000000000000008, // white king
                 0x00ff000000000000, // black pawns
                 0x4200000000000000, // black knights
                 0x2400000000000000, // black bishops
                 0x8100000000000000, // black rooks
-                0x0800000000000000, // black queen
-                0x1000000000000000, // black king
+                0x1000000000000000, // black queen
+                0x0800000000000000, // black king
             ],
 
             side_to_move: Color::White,
@@ -82,7 +82,7 @@ impl std::fmt::Debug for Board {
 
         for (piece_index, board) in self.bitboards.iter().enumerate() {
             for j in (0..8).rev() {
-                for k in 0..8 {
+                for k in (0..8).rev() {
                     let bit_index = j * 8 + k;
                     if board & (1 << bit_index) != 0 {
                         let c: char = PieceType::from(piece_index % COLOR_SWITCH).into();
@@ -98,12 +98,13 @@ impl std::fmt::Debug for Board {
         }
 
         for i in (0..8).rev() {
-            for j in 0..8 {
+            write!(f, "{}  ", i + 1)?;
+            for j in (0..8).rev() {
                 write!(f, "{} ", repr[i * 8 + j])?;
             }
             writeln!(f)?;
         }
-        Ok(())
+        writeln!(f, "\n   A B C D E F G H")
     }
 }
 
@@ -127,7 +128,7 @@ pub mod tests {
 
     pub fn print_u64(b: u64) {
         for i in (0..8).rev() {
-            for j in 0..8 {
+            for j in (0..8).rev() {
                 let index = i * 8 + j;
                 print!("{} ", if b & (1 << index) != 0 { '1' } else { '.' });
             }
