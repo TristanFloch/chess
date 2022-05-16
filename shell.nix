@@ -3,6 +3,7 @@
 pkgs.mkShell {
   nativeBuildInputs = with pkgs; [
     rustc
+    rustracer
     cargo
     gcc
     rust-analyzer
