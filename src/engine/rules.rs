@@ -16,8 +16,8 @@ const NOT_A_FILE: u64 = 0xfefefefefefefefe;
 const NOT_H_FILE: u64 = 0x7f7f7f7f7f7f7f7f;
 const ONE_RANK: u64 = 0xff;
 const H_FILE: u64 = 0x101010101010101;
-const DIAG: u64 = 0x8040201008040201u64;
-const ANTI_DIAG: u64 = 0x102040810204080u64;
+const DIAG: u64 = 0x8040201008040201;
+const ANTI_DIAG: u64 = 0x102040810204080;
 
 // post shift masks
 
@@ -71,18 +71,18 @@ pub fn generate_bishop_moves(board: &Board) -> Vec<Move> {
         let pos = Position::from(bishops);
 
         let index = bishops.lsb_index();
-        let actual_diag = ((index & 7) - (index >> 3)) as isize;
-        let mut attacks = if actual_diag >= 0 {
-            DIAG >> (actual_diag * 8)
+        let diag = (index & 7) as isize - (index >> 3) as isize;
+        let mut attacks = if diag >= 0 {
+            DIAG >> diag * 8
         } else {
-            DIAG << (- actual_diag * 8)
+            DIAG << -diag * 8
         };
 
-        let actual_a_diag = 7 - actual_diag;
-        attacks |= if actual_a_diag >= 0 {
-            ANTI_DIAG >> (actual_a_diag * 8)
+        let diag = 7 - (index & 7) as isize - (index >> 3) as isize;
+        attacks |= if diag >= 0 {
+            ANTI_DIAG >> diag * 8
         } else {
-            ANTI_DIAG << (- actual_a_diag * 8)
+            ANTI_DIAG << -diag * 8
         };
 
         attacks ^= 1 << index;
@@ -157,7 +157,7 @@ pub fn generate_king_moves(board: &Board) -> Vec<Move> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::board::{self, tests::print_u64};
+    use crate::engine::board::tests::print_u64;
 
     fn moves_to_u64(moves: &Vec<Move>) -> u64 {
         moves.iter().fold(0u64, |b, m| {
@@ -165,6 +165,7 @@ mod tests {
         })
     }
 
+    #[allow(dead_code)]
     fn print_moves(moves: &Vec<Move>) {
         let board = moves_to_u64(&moves);
         print_u64(board);
@@ -213,7 +214,7 @@ mod tests {
         let mut board = Board::empty();
 
         board.bitboards[PieceType::Rook as usize] = 0x200100000000; // c6 & h5
-        let mut res = generate_rook_moves(&board);
+        let res = generate_rook_moves(&board);
         assert_eq!(0x2121dffe21212121, moves_to_u64(&res));
         assert_eq!(28, res.len());
     }
@@ -222,8 +223,20 @@ mod tests {
     fn bishop_moves() {
         let mut board = Board::empty();
 
-        board.bitboards[PieceType::Bishop as usize] = 0x20000000; // c4
-        let mut res = generate_bishop_moves(&board);
-        assert_eq!(0x204885000508804, moves_to_u64(&res));
+        board.bitboards[PieceType::Bishop as usize] = 0x4000000; // c4
+        let res = generate_bishop_moves(&board);
+        assert_eq!(0x4020110a000a1120, moves_to_u64(&res));
+
+        board.bitboards[PieceType::Bishop as usize] = 0x200000; // f3
+        let res = generate_bishop_moves(&board);
+        assert_eq!(0x102048850005088, moves_to_u64(&res));
+
+        board.bitboards[PieceType::Bishop as usize] = 0x80000000000000; // H7
+        let res = generate_bishop_moves(&board);
+        assert_eq!(0x4000402010080402, moves_to_u64(&res));
+
+        board.bitboards[PieceType::Bishop as usize] = 0x8000000000000; // D7
+        let res = generate_bishop_moves(&board);
+        assert_eq!(0x1400142241800000, moves_to_u64(&res));
     }
 }
