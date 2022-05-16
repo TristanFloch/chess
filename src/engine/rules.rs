@@ -4,6 +4,13 @@ use crate::engine::piece::PieceType;
 use crate::engine::position::Position;
 use crate::engine::r#move::Move;
 
+const NOT_A_FILE: u64 = 0xfefefefefefefefe;
+const NOT_H_FILE: u64 = 0x7f7f7f7f7f7f7f7f;
+const ONE_RANK: u64 = 0xff;
+const H_FILE: u64 = 0x101010101010101;
+const DIAG: u64 = 0x8040201008040201;
+const ANTI_DIAG: u64 = 0x102040810204080;
+
 fn south_one(b: u64) -> u64 {
     b >> 8
 }
@@ -12,21 +19,30 @@ fn north_one(b: u64) -> u64 {
     b << 8
 }
 
-const NOT_A_FILE: u64 = 0xfefefefefefefefe;
-const NOT_H_FILE: u64 = 0x7f7f7f7f7f7f7f7f;
-const ONE_RANK: u64 = 0xff;
-const H_FILE: u64 = 0x101010101010101;
-const DIAG: u64 = 0x8040201008040201;
-const ANTI_DIAG: u64 = 0x102040810204080;
-
-// post shift masks
-
 fn east_one(b: u64) -> u64 {
     (b << 1) & NOT_A_FILE
 }
 
 fn west_one(b: u64) -> u64 {
     (b >> 1) & NOT_H_FILE
+}
+
+fn diag_mask(sq: isize) -> u64 {
+    let diag = (sq & 7) as isize - (sq >> 3) as isize;
+    if diag >= 0 {
+        DIAG >> diag * 8
+    } else {
+        DIAG << -diag * 8
+    }
+}
+
+fn anti_diag_mask(sq: isize) -> u64 {
+    let diag = 7 - (sq & 7) as isize - (sq >> 3) as isize;
+    if diag >= 0 {
+        ANTI_DIAG >> diag * 8
+    } else {
+        ANTI_DIAG << -diag * 8
+    }
 }
 
 pub fn generate_pawn_moves(board: &Board) -> Vec<Move> {
@@ -71,21 +87,7 @@ pub fn generate_bishop_moves(board: &Board) -> Vec<Move> {
         let pos = Position::from(bishops);
 
         let index = bishops.lsb_index();
-        let diag = (index & 7) as isize - (index >> 3) as isize;
-        let mut attacks = if diag >= 0 {
-            DIAG >> diag * 8
-        } else {
-            DIAG << -diag * 8
-        };
-
-        let diag = 7 - (index & 7) as isize - (index >> 3) as isize;
-        attacks |= if diag >= 0 {
-            ANTI_DIAG >> diag * 8
-        } else {
-            ANTI_DIAG << -diag * 8
-        };
-
-        attacks ^= 1 << index;
+        let mut attacks = (diag_mask(index as isize) | anti_diag_mask(index as isize)) ^ 1 << index;
 
         while attacks != 0 {
             v.push(Move {
