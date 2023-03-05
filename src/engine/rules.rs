@@ -1,6 +1,6 @@
 use crate::engine::bits::BitsOperations;
 use crate::engine::board::Board;
-use crate::engine::piece::PieceType;
+use crate::engine::piece::{Color, PieceType};
 use crate::engine::position::Position;
 use crate::engine::r#move::Move;
 
@@ -46,7 +46,26 @@ fn anti_diag_mask(sq: isize) -> u64 {
 }
 
 pub fn generate_pawn_moves(board: &Board) -> Vec<Move> {
-    todo!();
+    let pawns = board[PieceType::Pawn];
+    let mut attacks = if board.side_to_move == Color::White {
+        pawns << 8
+    } else {
+        pawns >> 8
+    };
+
+    let mut v = Vec::with_capacity(attacks.count_ones() as usize);
+
+    while attacks != 0 {
+        let pos = Position::from(pawns);
+        v.push(Move {
+            start: pos.clone(),
+            end: attacks.into(),
+            piece_type: PieceType::Pawn,
+        });
+        attacks = attacks.toggle_bit(attacks.lsb_index());
+    }
+
+    v
 }
 
 pub fn generate_knight_moves(board: &Board) -> Vec<Move> {
@@ -240,5 +259,19 @@ mod tests {
         board.bitboards[PieceType::Bishop as usize] = 0x8000000000000; // D7
         let res = generate_bishop_moves(&board);
         assert_eq!(0x1400142241800000, moves_to_u64(&res));
+    }
+
+    #[test]
+    fn pawn_moves() {
+        let mut board = Board::empty();
+
+        board.bitboards[PieceType::Pawn as usize] = 0x20429d00;
+        let res = generate_pawn_moves(&board);
+        assert_eq!(0x20429d0000, moves_to_u64(&res));
+
+        board.side_to_move = Color::Black;
+        board.bitboards[PieceType::Pawn as usize + 6] = 0x20429d0000;
+        let res = generate_pawn_moves(&board);
+        assert_eq!(0x20429d00, moves_to_u64(&res));
     }
 }

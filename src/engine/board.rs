@@ -5,7 +5,7 @@ use colored::Colorize;
 pub struct Board {
     pub bitboards: [u64; 12],
 
-    side_to_move: Color,
+    pub side_to_move: Color,
     turn: u32,
     white_king_castling: bool,
     white_queen_castling: bool,
