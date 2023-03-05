@@ -196,19 +196,19 @@ mod tests {
     fn king_moves() {
         let mut board = Board::empty();
 
-        board.bitboards[PieceType::King as usize] = 0x800000000; // d5
+        board[PieceType::King] = 0x800000000; // d5
         let mut res = generate_king_moves(&board);
         assert_eq!(0x1c141c000000, moves_to_u64(&res));
 
-        board.bitboards[PieceType::King as usize] = 0x1; // a1
+        board[PieceType::King] = 0x1; // a1
         res = generate_king_moves(&board);
         assert_eq!(0x302, moves_to_u64(&res));
 
-        board.bitboards[PieceType::King as usize] = 0x80; // h8
+        board[PieceType::King] = 0x80; // h8
         res = generate_king_moves(&board);
         assert_eq!(0xc040, moves_to_u64(&res));
 
-        board.bitboards[PieceType::King as usize] = 0x1000000000000000; // e8
+        board[PieceType::King] = 0x1000000000000000; // e8
         res = generate_king_moves(&board);
         assert_eq!(0x2838000000000000, moves_to_u64(&res));
     }
@@ -217,15 +217,15 @@ mod tests {
     fn knight_moves() {
         let mut board = Board::empty();
 
-        board.bitboards[PieceType::Knight as usize] = 0x42; // initial white pos
+        board[PieceType::Knight] = 0x42; // initial white pos
         let mut res = generate_knight_moves(&board);
         assert_eq!(0xa51800, moves_to_u64(&res));
 
-        board.bitboards[PieceType::Knight as usize] = 0x400000000; // one knight on f5
+        board[PieceType::Knight] = 0x400000000; // one knight on f5
         res = generate_knight_moves(&board);
         assert_eq!(0xa1100110a0000, moves_to_u64(&res));
 
-        board.bitboards[PieceType::Knight as usize] = 0; // no knight
+        board[PieceType::Knight] = 0; // no knight
         res = generate_knight_moves(&board);
         assert!(res.is_empty());
     }
@@ -234,7 +234,7 @@ mod tests {
     fn rook_moves() {
         let mut board = Board::empty();
 
-        board.bitboards[PieceType::Rook as usize] = 0x200100000000; // c6 & h5
+        board[PieceType::Rook] = 0x200100000000; // c6 & h5
         let res = generate_rook_moves(&board);
         assert_eq!(0x2121dffe21212121, moves_to_u64(&res));
         assert_eq!(28, res.len());
@@ -244,19 +244,19 @@ mod tests {
     fn bishop_moves() {
         let mut board = Board::empty();
 
-        board.bitboards[PieceType::Bishop as usize] = 0x4000000; // c4
+        board[PieceType::Bishop] = 0x4000000; // c4
         let res = generate_bishop_moves(&board);
         assert_eq!(0x4020110a000a1120, moves_to_u64(&res));
 
-        board.bitboards[PieceType::Bishop as usize] = 0x200000; // f3
+        board[PieceType::Bishop] = 0x200000; // f3
         let res = generate_bishop_moves(&board);
         assert_eq!(0x102048850005088, moves_to_u64(&res));
 
-        board.bitboards[PieceType::Bishop as usize] = 0x80000000000000; // H7
+        board[PieceType::Bishop] = 0x80000000000000; // H7
         let res = generate_bishop_moves(&board);
         assert_eq!(0x4000402010080402, moves_to_u64(&res));
 
-        board.bitboards[PieceType::Bishop as usize] = 0x8000000000000; // D7
+        board[PieceType::Bishop] = 0x8000000000000; // D7
         let res = generate_bishop_moves(&board);
         assert_eq!(0x1400142241800000, moves_to_u64(&res));
     }
@@ -265,12 +265,12 @@ mod tests {
     fn pawn_moves() {
         let mut board = Board::empty();
 
-        board.bitboards[PieceType::Pawn as usize] = 0x20429d00;
+        board[PieceType::Pawn] = 0x20429d00;
         let res = generate_pawn_moves(&board);
         assert_eq!(0x20429d0000, moves_to_u64(&res));
 
         board.side_to_move = Color::Black;
-        board.bitboards[PieceType::Pawn as usize + 6] = 0x20429d0000;
+        board[PieceType::Pawn] = 0x20429d0000;
         let res = generate_pawn_moves(&board);
         assert_eq!(0x20429d00, moves_to_u64(&res));
     }

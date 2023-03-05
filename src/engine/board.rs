@@ -76,6 +76,12 @@ impl std::ops::Index<PieceType> for Board {
     }
 }
 
+impl std::ops::IndexMut<PieceType> for Board {
+    fn index_mut(&mut self, piece: PieceType) -> &mut u64 {
+        &mut self.bitboards[self.side_to_move as usize * COLOR_SWITCH + piece as usize]
+    }
+}
+
 impl std::fmt::Debug for Board {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut repr = [(); 8 * 8].map(|_| ".".normal());
