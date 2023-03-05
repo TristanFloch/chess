@@ -45,8 +45,23 @@ fn anti_diag_mask(sq: isize) -> u64 {
     }
 }
 
+fn gen_attack_vec(pos: Position, mut attacks: u64, piece: PieceType) -> Vec<Move> {
+    let mut v = Vec::with_capacity(attacks.count_ones() as usize);
+
+    while attacks != 0 {
+        v.push(Move {
+            start: pos.clone(),
+            end: attacks.into(),
+            piece_type: piece.clone(),
+        });
+        attacks = attacks.toggle_bit(attacks.lsb_index());
+    }
+
+    v
+}
+
 pub fn generate_pawn_moves(board: &Board) -> Vec<Move> {
-    let pawns = board[PieceType::Pawn];
+    let mut pawns = board[PieceType::Pawn];
     let mut attacks = if board.side_to_move == Color::White {
         pawns << 8
     } else {
@@ -54,14 +69,13 @@ pub fn generate_pawn_moves(board: &Board) -> Vec<Move> {
     };
 
     let mut v = Vec::with_capacity(attacks.count_ones() as usize);
-
     while attacks != 0 {
-        let pos = Position::from(pawns);
         v.push(Move {
-            start: pos.clone(),
+            start: pawns.into(),
             end: attacks.into(),
             piece_type: PieceType::Pawn,
         });
+        pawns = pawns.toggle_bit(pawns.lsb_index());
         attacks = attacks.toggle_bit(attacks.lsb_index());
     }
 
@@ -84,14 +98,7 @@ pub fn generate_knight_moves(board: &Board) -> Vec<Move> {
         attacks |= (east | west) << 8;
         attacks |= (east | west) >> 8;
 
-        while attacks != 0 {
-            v.push(Move {
-                start: pos.clone(),
-                end: attacks.into(),
-                piece_type: PieceType::Knight,
-            });
-            attacks = attacks.toggle_bit(attacks.lsb_index());
-        }
+        v.append(&mut gen_attack_vec(pos, attacks, PieceType::Knight));
         knights = knights.toggle_bit(knights.lsb_index());
     }
 
@@ -106,17 +113,9 @@ pub fn generate_bishop_moves(board: &Board) -> Vec<Move> {
         let pos = Position::from(bishops);
 
         let index = bishops.lsb_index();
-        let mut attacks = (diag_mask(index as isize) | anti_diag_mask(index as isize)) ^ 1 << index;
+        let attacks = (diag_mask(index as isize) | anti_diag_mask(index as isize)) ^ 1 << index;
 
-        while attacks != 0 {
-            v.push(Move {
-                start: pos.clone(),
-                end: attacks.into(),
-                piece_type: PieceType::Bishop,
-            });
-            attacks = attacks.toggle_bit(attacks.lsb_index());
-        }
-
+        v.append(&mut gen_attack_vec(pos, attacks, PieceType::Bishop));
         bishops = bishops.toggle_bit(index);
     }
 
@@ -132,18 +131,10 @@ pub fn generate_rook_moves(board: &Board) -> Vec<Move> {
         let current = 1u64 << rooks.lsb_index();
         let pos = Position::from(current);
 
-        let mut attacks =
+        let attacks =
             ((ONE_RANK << (8 * pos.rank as usize)) | (H_FILE << pos.file as usize)) ^ current;
 
-        while attacks != 0 {
-            v.push(Move {
-                start: pos.clone(),
-                end: attacks.into(),
-                piece_type: PieceType::Rook,
-            });
-            attacks = attacks.toggle_bit(attacks.lsb_index());
-        }
-
+        v.append(&mut gen_attack_vec(pos, attacks, PieceType::Rook));
         rooks = rooks.toggle_bit(rooks.lsb_index());
     }
 
@@ -162,17 +153,7 @@ pub fn generate_king_moves(board: &Board) -> Vec<Move> {
     king |= attacks;
     attacks |= north_one(king) | south_one(king);
 
-    let mut v = Vec::with_capacity(attacks.count_ones() as usize);
-    while attacks != 0 {
-        v.push(Move {
-            start: start.clone(),
-            end: attacks.into(),
-            piece_type: PieceType::King,
-        });
-        attacks = attacks.toggle_bit(attacks.lsb_index());
-    }
-
-    v
+    gen_attack_vec(start, attacks, PieceType::King)
 }
 
 #[cfg(test)]
@@ -274,6 +255,4 @@ mod tests {
         let res = generate_pawn_moves(&board);
         assert_eq!(0x20429d000000, moves_to_u64(&res));
     }
-
-
 }
