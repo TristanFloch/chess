@@ -1,7 +1,7 @@
 pub trait BitsOperations {
     fn lsb_index(&self) -> usize;
     fn msb_index(&self) -> usize;
-    fn toggle_bit(&self, index: usize) -> Self;
+    fn toggle_bit(&mut self, index: usize);
 }
 
 impl BitsOperations for u64 {
@@ -13,7 +13,7 @@ impl BitsOperations for u64 {
         (Self::BITS - self.leading_zeros() - 1) as usize
     }
 
-    fn toggle_bit(&self, index: usize) -> Self {
-        self ^ (1 << index)
+    fn toggle_bit(&mut self, index: usize) {
+        *self = *self ^ (1 << index);
     }
 }
