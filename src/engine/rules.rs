@@ -142,7 +142,29 @@ pub fn generate_rook_moves(board: &Board) -> Vec<Move> {
 }
 
 pub fn generate_queen_moves(board: &Board) -> Vec<Move> {
-    todo!();
+    let mut queens = board[PieceType::Queen];
+
+    let mut v = Vec::new();
+
+    while queens != 0 {
+        let index = queens.lsb_index();
+        let curr_bb = 1u64 << index;
+        let pos = Position::from(curr_bb);
+        let rook_attacks =
+            ((ONE_RANK << (8 * pos.rank as usize)) | (H_FILE << pos.file as usize)) ^ curr_bb;
+        let bishop_attacks =
+            (diag_mask(index as isize) | anti_diag_mask(index as isize)) ^ 1 << index;
+
+        v.append(&mut gen_attack_vec(
+            pos,
+            rook_attacks | bishop_attacks,
+            PieceType::Queen,
+        ));
+
+        queens.toggle_bit(index);
+    }
+
+    v
 }
 
 pub fn generate_king_moves(board: &Board) -> Vec<Move> {
@@ -254,5 +276,18 @@ mod tests {
         board[PieceType::Pawn] = 0x20429d00000000;
         let res = generate_pawn_moves(&board);
         assert_eq!(0x20429d000000, moves_to_u64(&res));
+    }
+
+    #[test]
+    fn queen_moves() {
+        let mut board = Board::empty();
+
+        board[PieceType::Queen] = 0x4000000; // C4
+        let res = generate_queen_moves(&board);
+        assert_eq!(0x4424150efb0e1524, moves_to_u64(&res));
+
+        board[PieceType::Queen] = 0x4008000; // C4 and H2
+        let res = generate_queen_moves(&board);
+        assert_eq!(0xc6a49d9efbce7fe4, moves_to_u64(&res));
     }
 }
