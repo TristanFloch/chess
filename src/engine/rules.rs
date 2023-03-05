@@ -270,8 +270,10 @@ mod tests {
         assert_eq!(0x20429d0000, moves_to_u64(&res));
 
         board.side_to_move = Color::Black;
-        board[PieceType::Pawn] = 0x20429d0000;
+        board[PieceType::Pawn] = 0x20429d00000000;
         let res = generate_pawn_moves(&board);
-        assert_eq!(0x20429d00, moves_to_u64(&res));
+        assert_eq!(0x20429d000000, moves_to_u64(&res));
     }
+
+
 }
