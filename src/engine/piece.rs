@@ -1,4 +1,4 @@
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum Color {
     White = 0,
     Black,
@@ -9,7 +9,7 @@ impl From<usize> for Color {
         match i {
             x if x == Color::White as usize => Color::White,
             x if x == Color::Black as usize => Color::Black,
-            _ => panic!("cannot convert {} to Color", i)
+            _ => panic!("cannot convert {} to Color", i),
         }
     }
 }
@@ -46,7 +46,7 @@ impl From<usize> for PieceType {
             x if x == PieceType::Rook as usize => PieceType::Rook,
             x if x == PieceType::Queen as usize => PieceType::Queen,
             x if x == PieceType::King as usize => PieceType::King,
-            _ => panic!("cannot convert {} to PieceType", i)
+            _ => panic!("cannot convert {} to PieceType", i),
         }
     }
 }

@@ -1,5 +1,6 @@
+use crate::engine::bits::BitsOperations;
 use crate::engine::piece::{Color, PieceType};
-use crate::engine::position::Position;
+use crate::engine::position::{File, Position, Rank};
 use crate::engine::r#move::Move;
 use crate::engine::rules::*;
 
@@ -73,16 +74,29 @@ impl Board {
                 &mut (generator)(&self)
                     .into_iter()
                     .filter(|m| self.is_move_legal(m))
-                    .collect()
+                    .collect(),
             );
         }
 
         v
     }
 
+    fn do_move(&mut self, m: &Move) {
+        let mut bb = self[m.piece_type];
+        bb.toggle_bit(m.start.rank as usize * 8 + m.start.file as usize);
+        bb.toggle_bit(m.end.rank as usize * 8 + m.end.file as usize);
+        self[m.piece_type] = bb;
+
+        if self.side_to_move == Color::White {
+            self.side_to_move = Color::Black;
+            self.turn += 1;
+        } else {
+            self.side_to_move = Color::White;
+        }
+    }
+
     // TODO
     // fen constructor
-    // do_move
     // is_check
     // is_checkmate
     // is_draw
@@ -159,6 +173,10 @@ pub mod tests {
                 black_queen_castling: true,
             }
         }
+
+        fn at(&self, piece: PieceType, color: Color) -> u64 {
+            self.bitboards[color as usize * COLOR_SWITCH + piece as usize]
+        }
     }
 
     pub fn print_u64(b: u64) {
@@ -169,5 +187,29 @@ pub mod tests {
             }
             println!();
         }
+    }
+
+    #[test]
+    fn do_first_move() {
+        let mut board = Board::new();
+        board.do_move(&Move {
+            start: {
+                Position {
+                    rank: Rank::Two,
+                    file: File::E,
+                }
+            },
+            end: {
+                Position {
+                    rank: Rank::Four,
+                    file: File::E,
+                }
+            },
+            piece_type: PieceType::Pawn,
+        });
+
+        assert_eq!(board.turn, 1);
+        assert_eq!(board.side_to_move, Color::Black);
+        assert_eq!(0x1000ef00, board.at(PieceType::Pawn, Color::White));
     }
 }
