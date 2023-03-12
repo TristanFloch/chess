@@ -54,7 +54,7 @@ fn gen_attack_vec(pos: Position, mut attacks: u64, piece: PieceType) -> Vec<Move
             end: attacks.into(),
             piece_type: piece.clone(),
         });
-        attacks.toggle_bit(attacks.lsb_index());
+        attacks.lsb_pop();
     }
 
     v
@@ -75,8 +75,8 @@ pub fn generate_pawn_moves(board: &Board) -> Vec<Move> {
             end: attacks.into(),
             piece_type: PieceType::Pawn,
         });
-        pawns.toggle_bit(pawns.lsb_index());
-        attacks.toggle_bit(attacks.lsb_index());
+        pawns.lsb_pop();
+        attacks.lsb_pop();
     }
 
     v
@@ -99,7 +99,7 @@ pub fn generate_knight_moves(board: &Board) -> Vec<Move> {
         attacks |= (east | west) >> 8;
 
         v.append(&mut gen_attack_vec(pos, attacks, PieceType::Knight));
-        knights.toggle_bit(knights.lsb_index());
+        knights.lsb_pop();
     }
 
     v
@@ -112,11 +112,10 @@ pub fn generate_bishop_moves(board: &Board) -> Vec<Move> {
     while bishops != 0 {
         let pos = Position::from(bishops);
 
-        let index = bishops.lsb_index();
+        let index = bishops.lsb_pop();
         let attacks = (diag_mask(index as isize) | anti_diag_mask(index as isize)) ^ 1 << index;
 
         v.append(&mut gen_attack_vec(pos, attacks, PieceType::Bishop));
-        bishops.toggle_bit(index);
     }
 
     v
@@ -128,14 +127,13 @@ pub fn generate_rook_moves(board: &Board) -> Vec<Move> {
     let mut v = Vec::new();
 
     while rooks != 0 {
-        let current = 1u64 << rooks.lsb_index();
+        let current = 1u64 << rooks.lsb_pop();
         let pos = Position::from(current);
 
         let attacks =
             ((ONE_RANK << (8 * pos.rank as usize)) | (H_FILE << pos.file as usize)) ^ current;
 
         v.append(&mut gen_attack_vec(pos, attacks, PieceType::Rook));
-        rooks.toggle_bit(rooks.lsb_index());
     }
 
     v
@@ -147,7 +145,7 @@ pub fn generate_queen_moves(board: &Board) -> Vec<Move> {
     let mut v = Vec::new();
 
     while queens != 0 {
-        let index = queens.lsb_index();
+        let index = queens.lsb_pop();
         let curr_bb = 1u64 << index;
         let pos = Position::from(curr_bb);
         let rook_attacks =
@@ -160,8 +158,6 @@ pub fn generate_queen_moves(board: &Board) -> Vec<Move> {
             rook_attacks | bishop_attacks,
             PieceType::Queen,
         ));
-
-        queens.toggle_bit(index);
     }
 
     v
