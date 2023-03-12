@@ -1,5 +1,8 @@
 use crate::engine::piece::{Color, PieceType};
 use crate::engine::position::Position;
+use crate::engine::r#move::Move;
+use crate::engine::rules::*;
+
 use colored::Colorize;
 
 pub struct Board {
@@ -49,10 +52,36 @@ impl Board {
         }
     }
 
+    fn is_move_legal(&self, m: &Move) -> bool {
+        true
+    }
+
+    fn generate_legal_moves(&self) -> Vec<Move> {
+        let mut v = Vec::new();
+
+        let generators: Vec<fn(&Board) -> Vec<Move>> = vec![
+            generate_pawn_moves,
+            generate_rook_moves,
+            generate_knight_moves,
+            generate_bishop_moves,
+            generate_queen_moves,
+            generate_king_moves,
+        ];
+
+        for generator in generators {
+            v.append(
+                &mut (generator)(&self)
+                    .into_iter()
+                    .filter(|m| self.is_move_legal(m))
+                    .collect()
+            );
+        }
+
+        v
+    }
+
     // TODO
     // fen constructor
-    // generate_legal_moves
-    // is_move_legal
     // do_move
     // is_check
     // is_checkmate
