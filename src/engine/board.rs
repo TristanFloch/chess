@@ -6,6 +6,7 @@ use crate::engine::rules::*;
 
 use colored::Colorize;
 
+#[derive(Clone)]
 pub struct Board {
     pub bitboards: [u64; 12],
 
@@ -57,7 +58,7 @@ impl Board {
         true
     }
 
-    fn generate_legal_moves(&self) -> Vec<Move> {
+    pub fn generate_legal_moves(&self) -> Vec<Move> {
         let mut v = Vec::new();
 
         let generators: Vec<fn(&Board) -> Vec<Move>> = vec![
@@ -81,7 +82,7 @@ impl Board {
         v
     }
 
-    fn do_move(&mut self, m: &Move) {
+    pub fn do_move(&mut self, m: &Move) {
         let mut bb = self[m.piece_type];
         bb.toggle_bit(m.start.rank as usize * 8 + m.start.file as usize);
         bb.toggle_bit(m.end.rank as usize * 8 + m.end.file as usize);
