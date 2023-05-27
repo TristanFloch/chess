@@ -27,7 +27,7 @@ impl Board {
     pub fn new() -> Self {
         // bitboards computed here:
         // https://gekomad.github.io/Cinnamon/BitboardCalculator/
-        // using layout 2 (A1 is bit lsb)
+        // using layout 2 (A1 bit is lsb)
         Self {
             bitboards: [
                 0x000000000000ff00, // white pawns
