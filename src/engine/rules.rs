@@ -27,7 +27,7 @@ fn west_one(b: u64) -> u64 {
     (b >> 1) & NOT_H_FILE
 }
 
-fn diag_mask(sq: isize) -> u64 {
+fn diag_mask(sq: usize) -> u64 {
     let diag = (sq & 7) as isize - (sq >> 3) as isize;
     if diag >= 0 {
         DIAG >> diag * 8
@@ -36,7 +36,7 @@ fn diag_mask(sq: isize) -> u64 {
     }
 }
 
-fn anti_diag_mask(sq: isize) -> u64 {
+fn anti_diag_mask(sq: usize) -> u64 {
     let diag = 7 - (sq & 7) as isize - (sq >> 3) as isize;
     if diag >= 0 {
         ANTI_DIAG >> diag * 8
@@ -113,7 +113,7 @@ pub fn generate_bishop_moves(board: &Board) -> Vec<Move> {
         let pos = Position::from(bishops);
 
         let index = bishops.lsb_pop();
-        let attacks = (diag_mask(index as isize) | anti_diag_mask(index as isize)) ^ 1 << index;
+        let attacks = (diag_mask(index as usize) | anti_diag_mask(index as usize)) ^ 1 << index;
 
         v.append(&mut gen_attack_vec(pos, attacks, PieceType::Bishop));
     }
@@ -151,7 +151,7 @@ pub fn generate_queen_moves(board: &Board) -> Vec<Move> {
         let rook_attacks =
             ((ONE_RANK << (8 * pos.rank as usize)) | (H_FILE << pos.file as usize)) ^ curr_bb;
         let bishop_attacks =
-            (diag_mask(index as isize) | anti_diag_mask(index as isize)) ^ 1 << index;
+            (diag_mask(index as usize) | anti_diag_mask(index as usize)) ^ 1 << index;
 
         v.append(&mut gen_attack_vec(
             pos,
