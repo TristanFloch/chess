@@ -3,6 +3,7 @@ pub trait BitOperations {
     fn lsb_pop(&mut self) -> usize;
     fn msb_index(&self) -> usize;
     fn toggle_bit(&mut self, index: usize);
+    fn test_bit(&self, index: usize) -> bool;
 }
 
 impl BitOperations for u64 {
@@ -21,6 +22,10 @@ impl BitOperations for u64 {
     }
 
     fn toggle_bit(&mut self, index: usize) {
-        *self = *self ^ (1 << index);
+        *self = *self ^ (1u64 << index);
+    }
+
+    fn test_bit(&self, index: usize) -> bool {
+        (*self & (1u64 << index)) != 0u64
     }
 }
