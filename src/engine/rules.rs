@@ -1,4 +1,4 @@
-use crate::engine::bits::BitsOperations;
+use crate::engine::bits::BitOperations;
 use crate::engine::board::Board;
 use crate::engine::piece::{Color, PieceType};
 use crate::engine::position::Position;

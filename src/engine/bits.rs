@@ -1,11 +1,11 @@
-pub trait BitsOperations {
+pub trait BitOperations {
     fn lsb_index(&self) -> usize;
     fn lsb_pop(&mut self) -> usize;
     fn msb_index(&self) -> usize;
     fn toggle_bit(&mut self, index: usize);
 }
 
-impl BitsOperations for u64 {
+impl BitOperations for u64 {
     fn lsb_index(&self) -> usize {
         self.trailing_zeros() as usize
     }

@@ -1,4 +1,4 @@
-use crate::engine::bits::BitsOperations;
+use crate::engine::bits::BitOperations;
 
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum Rank {
