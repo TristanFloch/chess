@@ -1,6 +1,6 @@
 use crate::engine::bits::BitOperations;
 use crate::engine::piece::{Color, PieceType};
-use crate::engine::position::{File, Position, Rank};
+use crate::engine::position::Position;
 use crate::engine::r#move::Move;
 use crate::engine::rules::*;
 
@@ -177,6 +177,7 @@ impl std::fmt::Debug for Board {
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use crate::engine::position::{File, Rank};
     use crate::engine::rules::tests::moves_to_u64;
 
     impl Board {
