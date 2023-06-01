@@ -1,3 +1,35 @@
+const NOT_A_FILE: u64 = 0xfefefefefefefefe;
+const NOT_H_FILE: u64 = 0x7f7f7f7f7f7f7f7f;
+
+fn south_one(bb: u64) -> u64 {
+    bb >> 8
+}
+
+fn north_one(bb: u64) -> u64 {
+    bb << 8
+}
+
+fn east_one(bb: u64) -> u64 {
+    (bb << 1) & NOT_A_FILE
+}
+
+fn west_one(bb: u64) -> u64 {
+    (bb >> 1) & NOT_H_FILE
+}
+
+pub fn exclude_friends(attacks: u64, friends: u64) -> u64 {
+    attacks ^ (attacks & friends)
+}
+
+pub fn king_attacks_bb(sq: usize) -> u64 {
+    let mut king = 1u64 << sq;
+    let mut attacks = east_one(king) | west_one(king);
+    king |= attacks;
+    attacks |= north_one(king) | south_one(king);
+
+    attacks
+}
+
 pub fn bishop_attacks_bb(sq: usize, blockers: u64) -> u64 {
     let mut attacks = 0;
 
