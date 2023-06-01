@@ -28,7 +28,7 @@ impl Board {
     pub fn new() -> Self {
         // bitboards computed here:
         // https://gekomad.github.io/Cinnamon/BitboardCalculator/
-        // using layout 2 (A1 bit is lsb)
+        // using "little endian file and rank mapping", layout 2 (A1 bit is lsb)
         Self {
             bitboards: [
                 0x000000000000ff00, // white pawns
@@ -54,7 +54,7 @@ impl Board {
         }
     }
 
-    fn is_move_legal(&self, m: &Move) -> bool {
+    fn is_move_legal(&self, _m: &Move) -> bool {
         true
     }
 
@@ -88,12 +88,28 @@ impl Board {
         bb.toggle_bit(m.end.rank as usize * 8 + m.end.file as usize);
         self[m.piece_type] = bb;
 
-        if self.side_to_move == Color::White {
-            self.side_to_move = Color::Black;
+        self.side_to_move = if self.side_to_move == Color::White {
             self.turn += 1;
+            Color::Black
         } else {
-            self.side_to_move = Color::White;
-        }
+            Color::White
+        };
+    }
+
+    pub fn enemies_bb(&self) -> u64 {
+        let offset = !self.side_to_move as usize * COLOR_SWITCH;
+
+        self.bitboards[offset..(COLOR_SWITCH + offset)]
+            .iter()
+            .fold(0u64, |res, bb| res | bb)
+    }
+
+    pub fn friends_bb(&self) -> u64 {
+        let offset = self.side_to_move as usize * COLOR_SWITCH;
+
+        self.bitboards[offset..(COLOR_SWITCH + offset)]
+            .iter()
+            .fold(0u64, |res, bb| res | bb)
     }
 
     // TODO
@@ -107,7 +123,7 @@ impl std::ops::Index<Position> for Board {
     type Output = (PieceType, Color);
 
     // operator[]: piece type and color from position
-    fn index(&self, pos: Position) -> &Self::Output {
+    fn index(&self, _pos: Position) -> &Self::Output {
         todo!();
     }
 }
@@ -161,6 +177,7 @@ impl std::fmt::Debug for Board {
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use crate::engine::rules::tests::moves_to_u64;
 
     impl Board {
         pub fn empty() -> Self {
@@ -178,6 +195,10 @@ pub mod tests {
         fn at(&self, piece: PieceType, color: Color) -> u64 {
             self.bitboards[color as usize * COLOR_SWITCH + piece as usize]
         }
+
+        pub fn set_bb(&mut self, piece: PieceType, color: Color, bb: u64) {
+            self.bitboards[color as usize * COLOR_SWITCH + piece as usize] = bb;
+        }
     }
 
     pub fn print_u64(b: u64) {
@@ -191,26 +212,54 @@ pub mod tests {
     }
 
     #[test]
-    fn do_first_move() {
+    fn do_move_e4() {
         let mut board = Board::new();
-        board.do_move(&Move {
-            start: {
-                Position {
-                    rank: Rank::Two,
-                    file: File::E,
-                }
+        let m = Move::new(
+            Position {
+                rank: Rank::Two,
+                file: File::E,
             },
-            end: {
-                Position {
-                    rank: Rank::Four,
-                    file: File::E,
-                }
+            Position {
+                rank: Rank::Four,
+                file: File::E,
             },
-            piece_type: PieceType::Pawn,
-        });
+            PieceType::Pawn,
+        );
+
+        assert!(board.is_move_legal(&m));
+
+        board.do_move(&m);
 
         assert_eq!(board.turn, 1);
         assert_eq!(board.side_to_move, Color::Black);
         assert_eq!(0x1000ef00, board.at(PieceType::Pawn, Color::White));
+    }
+
+    #[test]
+    fn test_blockers_bb() {
+        let board = Board::new();
+        assert_eq!(0xffff000000000000, board.enemies_bb());
+        assert_eq!(0xffff, board.friends_bb());
+    }
+
+    #[ignore]
+    #[test]
+    fn legal_moves_pieces_start() {
+        let board = Board::new();
+
+        let moves = generate_rook_moves(&board);
+        assert_eq!(0, moves.len(), "expected 0, got {}", moves_to_u64(&moves));
+
+        let moves = generate_knight_moves(&board);
+        assert_eq!(4, moves.len(), "expected 4, got {}", moves_to_u64(&moves));
+
+        let moves = generate_bishop_moves(&board);
+        assert_eq!(0, moves.len(), "expected 0, got {}", moves_to_u64(&moves));
+
+        let moves = generate_queen_moves(&board);
+        assert_eq!(0, moves.len(), "expected 0, got {}", moves_to_u64(&moves));
+
+        let moves = generate_king_moves(&board);
+        assert_eq!(0, moves.len(), "expected 0, got {}", moves_to_u64(&moves));
     }
 }

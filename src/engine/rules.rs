@@ -3,6 +3,7 @@ use crate::engine::board::Board;
 use crate::engine::piece::{Color, PieceType};
 use crate::engine::position::Position;
 use crate::engine::r#move::Move;
+use crate::engine::rules_bb::*;
 
 const NOT_A_FILE: u64 = 0xfefefefefefefefe;
 const NOT_H_FILE: u64 = 0x7f7f7f7f7f7f7f7f;
@@ -45,14 +46,17 @@ fn anti_diag_mask(sq: usize) -> u64 {
     }
 }
 
-fn gen_attack_vec(pos: Position, mut attacks: u64, piece: PieceType) -> Vec<Move> {
+fn gen_attack_vec(pos: Position, mut attacks: u64, piece: PieceType, enemies: u64) -> Vec<Move> {
     let mut v = Vec::with_capacity(attacks.count_ones() as usize);
 
     while attacks != 0 {
+        let sq = attacks.lsb_index();
         v.push(Move {
             start: pos.clone(),
-            end: attacks.into(),
+            end: sq.into(),
             piece_type: piece.clone(),
+
+            is_capture: enemies.test_bit(sq),
         });
         attacks.lsb_pop();
     }
@@ -74,6 +78,8 @@ pub fn generate_pawn_moves(board: &Board) -> Vec<Move> {
             start: pawns.into(),
             end: attacks.into(),
             piece_type: PieceType::Pawn,
+
+            is_capture: false,
         });
         pawns.lsb_pop();
         attacks.lsb_pop();
@@ -85,6 +91,7 @@ pub fn generate_pawn_moves(board: &Board) -> Vec<Move> {
 pub fn generate_knight_moves(board: &Board) -> Vec<Move> {
     let mut knights = board[PieceType::Knight];
     let mut v = Vec::new();
+    let enemies = board.enemies_bb();
 
     while knights != 0 {
         let pos = Position::from(knights);
@@ -98,7 +105,12 @@ pub fn generate_knight_moves(board: &Board) -> Vec<Move> {
         attacks |= (east | west) << 8;
         attacks |= (east | west) >> 8;
 
-        v.append(&mut gen_attack_vec(pos, attacks, PieceType::Knight));
+        v.append(&mut gen_attack_vec(
+            pos,
+            attacks,
+            PieceType::Knight,
+            enemies,
+        ));
         knights.lsb_pop();
     }
 
@@ -106,16 +118,23 @@ pub fn generate_knight_moves(board: &Board) -> Vec<Move> {
 }
 
 pub fn generate_bishop_moves(board: &Board) -> Vec<Move> {
+    let enemies = board.enemies_bb();
+    let friends = board.friends_bb();
+    let blockers = enemies | friends;
+
     let mut bishops = board[PieceType::Bishop];
     let mut v = Vec::new();
 
     while bishops != 0 {
-        let pos = Position::from(bishops);
-
-        let index = bishops.lsb_pop();
-        let attacks = (diag_mask(index as usize) | anti_diag_mask(index as usize)) ^ 1 << index;
-
-        v.append(&mut gen_attack_vec(pos, attacks, PieceType::Bishop));
+        let sq = bishops.lsb_pop();
+        let pos = Position::from(sq);
+        let attacks = exclude_friends(bishop_attacks_bb(sq, blockers), friends);
+        v.append(&mut gen_attack_vec(
+            pos,
+            attacks,
+            PieceType::Bishop,
+            enemies,
+        ));
     }
 
     v
@@ -123,7 +142,7 @@ pub fn generate_bishop_moves(board: &Board) -> Vec<Move> {
 
 pub fn generate_rook_moves(board: &Board) -> Vec<Move> {
     let mut rooks = board[PieceType::Rook];
-
+    let enemies = board.enemies_bb();
     let mut v = Vec::new();
 
     while rooks != 0 {
@@ -133,7 +152,7 @@ pub fn generate_rook_moves(board: &Board) -> Vec<Move> {
         let attacks =
             ((ONE_RANK << (8 * pos.rank as usize)) | (H_FILE << pos.file as usize)) ^ current;
 
-        v.append(&mut gen_attack_vec(pos, attacks, PieceType::Rook));
+        v.append(&mut gen_attack_vec(pos, attacks, PieceType::Rook, enemies));
     }
 
     v
@@ -141,7 +160,7 @@ pub fn generate_rook_moves(board: &Board) -> Vec<Move> {
 
 pub fn generate_queen_moves(board: &Board) -> Vec<Move> {
     let mut queens = board[PieceType::Queen];
-
+    let enemies = board.enemies_bb();
     let mut v = Vec::new();
 
     while queens != 0 {
@@ -157,6 +176,7 @@ pub fn generate_queen_moves(board: &Board) -> Vec<Move> {
             pos,
             rook_attacks | bishop_attacks,
             PieceType::Queen,
+            enemies,
         ));
     }
 
@@ -165,21 +185,22 @@ pub fn generate_queen_moves(board: &Board) -> Vec<Move> {
 
 pub fn generate_king_moves(board: &Board) -> Vec<Move> {
     let mut king = board[PieceType::King];
+    let enemies = board.enemies_bb();
     let start = Position::from(king);
 
     let mut attacks = east_one(king) | west_one(king);
     king |= attacks;
     attacks |= north_one(king) | south_one(king);
 
-    gen_attack_vec(start, attacks, PieceType::King)
+    gen_attack_vec(start, attacks, PieceType::King, enemies)
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use crate::engine::board::tests::print_u64;
 
-    fn moves_to_u64(moves: &Vec<Move>) -> u64 {
+    pub fn moves_to_u64(moves: &Vec<Move>) -> u64 {
         moves.iter().fold(0u64, |b, m| {
             b | (1 << (m.end.rank as u8 * 8 + m.end.file as u8))
         })
@@ -192,7 +213,7 @@ mod tests {
     }
 
     #[test]
-    fn king_moves() {
+    fn king_moves_empty() {
         let mut board = Board::empty();
 
         board[PieceType::King] = 0x800000000; // d5
@@ -213,7 +234,7 @@ mod tests {
     }
 
     #[test]
-    fn knight_moves() {
+    fn knight_moves_empty() {
         let mut board = Board::empty();
 
         board[PieceType::Knight] = 0x42; // initial white pos
@@ -230,7 +251,7 @@ mod tests {
     }
 
     #[test]
-    fn rook_moves() {
+    fn rook_moves_empty() {
         let mut board = Board::empty();
 
         board[PieceType::Rook] = 0x200100000000; // c6 & h5
@@ -240,7 +261,7 @@ mod tests {
     }
 
     #[test]
-    fn bishop_moves() {
+    fn bishop_moves_empty() {
         let mut board = Board::empty();
 
         board[PieceType::Bishop] = 0x4000000; // c4
@@ -261,7 +282,22 @@ mod tests {
     }
 
     #[test]
-    fn pawn_moves() {
+    fn bishop_moves_blockers() {
+        let mut board = Board::empty();
+        board[PieceType::Bishop] = 0x4000000; // c4
+
+        board[PieceType::Pawn] = 0x20010020020000; // a6, b3, f7, f4
+        let res = generate_bishop_moves(&board);
+        assert_eq!(0x100a00081020, moves_to_u64(&res));
+
+        board[PieceType::Pawn] = 0u64; // remove white blockers
+        board.set_bb(PieceType::Pawn, Color::Black, 0x20010020020000); // a6, b3, f7, f4
+        let res = generate_bishop_moves(&board);
+        assert_eq!(0x20110a000a1020, moves_to_u64(&res));
+    }
+
+    #[test]
+    fn pawn_moves_empty() {
         let mut board = Board::empty();
 
         board[PieceType::Pawn] = 0x20429d00;
@@ -275,7 +311,7 @@ mod tests {
     }
 
     #[test]
-    fn queen_moves() {
+    fn queen_moves_empty() {
         let mut board = Board::empty();
 
         board[PieceType::Queen] = 0x4000000; // C4

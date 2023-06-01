@@ -65,7 +65,7 @@ pub struct Position {
 impl From<u64> for Position {
     fn from(b: u64) -> Self {
         if b == 0 {
-            panic!("attempt to create position from null unsigned");
+            panic!("attempt to create position from empty bitboard");
         }
 
         let index = b.lsb_index();
@@ -73,6 +73,15 @@ impl From<u64> for Position {
         Position {
             rank: (index / 8).into(),
             file: (index % 8).into(),
+        }
+    }
+}
+
+impl From<usize> for Position {
+    fn from(sq: usize) -> Self {
+        Position {
+            rank: (sq / 8).into(),
+            file: (sq % 8).into(),
         }
     }
 }
