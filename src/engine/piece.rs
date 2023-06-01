@@ -14,6 +14,17 @@ impl From<usize> for Color {
     }
 }
 
+impl std::ops::Not for Color {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Color::White => Color::Black,
+            Color::Black => Color::White
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 pub enum PieceType {
     Pawn = 0,
