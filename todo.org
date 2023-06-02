@@ -1,0 +1,2 @@
+* Inbox
+** TODO create a cache in =Board= for =enemies_bb()= and =friends_bb()=
