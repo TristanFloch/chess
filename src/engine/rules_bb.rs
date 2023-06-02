@@ -60,5 +60,31 @@ pub fn bishop_attacks_bb(sq: usize, blockers: u64) -> u64 {
     attacks
 }
 
+pub fn rook_attacks_bb(sq: usize, blockers: u64) -> u64 {
+    let mut attacks = 0;
+
+    let mut fill_until_blocker =
+        |range: Box<dyn Iterator<Item = usize>>, offset: Box<dyn Fn(usize) -> usize>| {
+            for i in range {
+                let bb = 1u64 << offset(i);
+                attacks |= bb;
+                if blockers & bb != 0 {
+                    break;
+                }
+            }
+        };
+
+    // cast to isize so substracting 1 causes no problem
+    let tr = sq / 8; // target rank
+    let tf = sq % 8; // target file
+
+    let vertical_offset = |r: usize| -> usize { r * 8 + tf };
+    let horizontal_offset = |f: usize| -> usize { tr * 8 + f };
+
+    fill_until_blocker(Box::new((tr + 1)..8), Box::new(vertical_offset)); // north
+    fill_until_blocker(Box::new((0..tr).rev()), Box::new(vertical_offset)); // south
+    fill_until_blocker(Box::new((tf + 1)..8), Box::new(horizontal_offset)); // west
+    fill_until_blocker(Box::new((0..tf).rev()), Box::new(horizontal_offset)); // east
+
     attacks
 }

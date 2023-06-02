@@ -133,17 +133,17 @@ pub fn generate_bishop_moves(board: &Board) -> Vec<Move> {
 }
 
 pub fn generate_rook_moves(board: &Board) -> Vec<Move> {
-    let mut rooks = board[PieceType::Rook];
     let enemies = board.enemies_bb();
+    let friends = board.friends_bb();
+    let blockers = enemies | friends;
+
+    let mut rooks = board[PieceType::Rook];
     let mut v = Vec::new();
 
     while rooks != 0 {
-        let current = 1u64 << rooks.lsb_pop();
-        let pos = Position::from(current);
-
-        let attacks =
-            ((ONE_RANK << (8 * pos.rank as usize)) | (H_FILE << pos.file as usize)) ^ current;
-
+        let sq = rooks.lsb_pop();
+        let pos = Position::from(sq);
+        let attacks = exclude_friends(rook_attacks_bb(sq, blockers), friends);
         v.append(&mut gen_attack_vec(pos, attacks, PieceType::Rook, enemies));
     }
 
@@ -266,6 +266,21 @@ pub mod tests {
         let res = generate_rook_moves(&board);
         assert_eq!(0x2121dffe21212121, moves_to_u64(&res));
         assert_eq!(28, res.len());
+    }
+
+    #[test]
+    fn rook_moves_blockers() {
+        let mut board = Board::empty();
+        board[PieceType::Rook] = 0x200100000000; // c6 & h5
+
+        board[PieceType::Pawn] = 0x2100444000002100; // lots of blockers
+        let res = generate_rook_moves(&board);
+        assert_eq!(0x21193e21210000, moves_to_u64(&res));
+
+        board[PieceType::Pawn] = 0u64;
+        board.set_bb(PieceType::Pawn, Color::Black,  0x2100444000002100);
+        let res = generate_rook_moves(&board);
+        assert_eq!(0x21215d7e21212100, moves_to_u64(&res));
     }
 
     #[test]
