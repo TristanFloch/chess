@@ -88,3 +88,18 @@ pub fn rook_attacks_bb(sq: usize, blockers: u64) -> u64 {
 
     attacks
 }
+
+pub fn knight_attacks_bb(sq: usize) -> u64 {
+    let bb = 1u64 << sq;
+
+    let mut east = east_one(bb);
+    let mut west = west_one(bb);
+    let mut attacks = (east | west) << 16;
+    attacks |= (east | west) >> 16;
+    east = east_one(east);
+    west = west_one(west);
+    attacks |= (east | west) << 8;
+    attacks |= (east | west) >> 8;
+
+    attacks
+}

@@ -5,20 +5,11 @@ use crate::engine::position::Position;
 use crate::engine::r#move::Move;
 use crate::engine::rules_bb::*;
 
-const NOT_A_FILE: u64 = 0xfefefefefefefefe;
-const NOT_H_FILE: u64 = 0x7f7f7f7f7f7f7f7f;
 const ONE_RANK: u64 = 0xff;
 const H_FILE: u64 = 0x101010101010101;
 const DIAG: u64 = 0x8040201008040201;
 const ANTI_DIAG: u64 = 0x102040810204080;
 
-fn east_one(b: u64) -> u64 {
-    (b << 1) & NOT_A_FILE
-}
-
-fn west_one(b: u64) -> u64 {
-    (b >> 1) & NOT_H_FILE
-}
 
 fn diag_mask(sq: usize) -> u64 {
     let diag = (sq & 7) as isize - (sq >> 3) as isize;
@@ -82,28 +73,20 @@ pub fn generate_pawn_moves(board: &Board) -> Vec<Move> {
 
 pub fn generate_knight_moves(board: &Board) -> Vec<Move> {
     let mut knights = board[PieceType::Knight];
-    let mut v = Vec::new();
     let enemies = board.enemies_bb();
+    let friends = board.friends_bb();
+    let mut v = Vec::new();
 
     while knights != 0 {
-        let pos = Position::from(knights);
-
-        let mut east = east_one(knights);
-        let mut west = west_one(knights);
-        let mut attacks = (east | west) << 16;
-        attacks |= (east | west) >> 16;
-        east = east_one(east);
-        west = west_one(west);
-        attacks |= (east | west) << 8;
-        attacks |= (east | west) >> 8;
-
+        let sq = knights.lsb_pop();
+        let pos = Position::from(sq);
+        let attacks = exclude_friends(knight_attacks_bb(sq), friends);
         v.append(&mut gen_attack_vec(
             pos,
             attacks,
             PieceType::Knight,
             enemies,
         ));
-        knights.lsb_pop();
     }
 
     v
@@ -249,13 +232,28 @@ pub mod tests {
         let res = generate_knight_moves(&board);
         assert_eq!(0xa51800, moves_to_u64(&res));
 
-        board[PieceType::Knight] = 0x400000000; // one knight on f5
+        board[PieceType::Knight] = 0x400000000; // one knight on c5
         let res = generate_knight_moves(&board);
         assert_eq!(0xa1100110a0000, moves_to_u64(&res));
 
         board[PieceType::Knight] = 0; // no knight
         let res = generate_knight_moves(&board);
         assert!(res.is_empty());
+    }
+
+    #[test]
+    fn knight_moves_blockers() {
+        let mut board = Board::empty();
+        board[PieceType::Knight] = 0x400000000; // one knight on c5
+
+        board[PieceType::Pawn] = 0x8020001080000; // a4, b6, d3, d7
+        let res = generate_knight_moves(&board);
+        assert_eq!(0x2110010020000, moves_to_u64(&res));
+
+        board[PieceType::Pawn] = 0u64;
+        board.set_bb(PieceType::Pawn, Color::Black, 0x8020001080000); // a4, b6, d3, d7
+        let res = generate_knight_moves(&board);
+        assert_eq!(0xa1100110a0000, moves_to_u64(&res));
     }
 
     #[test]
