@@ -5,30 +5,6 @@ use crate::engine::position::Position;
 use crate::engine::r#move::Move;
 use crate::engine::rules_bb::*;
 
-const ONE_RANK: u64 = 0xff;
-const H_FILE: u64 = 0x101010101010101;
-const DIAG: u64 = 0x8040201008040201;
-const ANTI_DIAG: u64 = 0x102040810204080;
-
-
-fn diag_mask(sq: usize) -> u64 {
-    let diag = (sq & 7) as isize - (sq >> 3) as isize;
-    if diag >= 0 {
-        DIAG >> diag * 8
-    } else {
-        DIAG << -diag * 8
-    }
-}
-
-fn anti_diag_mask(sq: usize) -> u64 {
-    let diag = 7 - (sq & 7) as isize - (sq >> 3) as isize;
-    if diag >= 0 {
-        ANTI_DIAG >> diag * 8
-    } else {
-        ANTI_DIAG << -diag * 8
-    }
-}
-
 fn gen_attack_vec(pos: Position, mut attacks: u64, piece: PieceType, enemies: u64) -> Vec<Move> {
     let mut v = Vec::with_capacity(attacks.count_ones() as usize);
 
@@ -72,9 +48,10 @@ pub fn generate_pawn_moves(board: &Board) -> Vec<Move> {
 }
 
 pub fn generate_knight_moves(board: &Board) -> Vec<Move> {
-    let mut knights = board[PieceType::Knight];
     let enemies = board.enemies_bb();
     let friends = board.friends_bb();
+
+    let mut knights = board[PieceType::Knight];
     let mut v = Vec::new();
 
     while knights != 0 {
@@ -134,25 +111,18 @@ pub fn generate_rook_moves(board: &Board) -> Vec<Move> {
 }
 
 pub fn generate_queen_moves(board: &Board) -> Vec<Move> {
-    let mut queens = board[PieceType::Queen];
     let enemies = board.enemies_bb();
+    let friends = board.friends_bb();
+    let blockers = enemies | friends;
+
+    let mut queens = board[PieceType::Queen];
     let mut v = Vec::new();
 
     while queens != 0 {
-        let index = queens.lsb_pop();
-        let curr_bb = 1u64 << index;
-        let pos = Position::from(curr_bb);
-        let rook_attacks =
-            ((ONE_RANK << (8 * pos.rank as usize)) | (H_FILE << pos.file as usize)) ^ curr_bb;
-        let bishop_attacks =
-            (diag_mask(index as usize) | anti_diag_mask(index as usize)) ^ 1 << index;
-
-        v.append(&mut gen_attack_vec(
-            pos,
-            rook_attacks | bishop_attacks,
-            PieceType::Queen,
-            enemies,
-        ));
+        let sq = queens.lsb_pop();
+        let pos = Position::from(sq);
+        let attacks = exclude_friends(queen_attacks_bb(sq, blockers), friends);
+        v.append(&mut gen_attack_vec(pos, attacks, PieceType::Queen, enemies));
     }
 
     v
@@ -174,7 +144,7 @@ pub fn generate_king_moves(board: &Board) -> Vec<Move> {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::engine::board::tests::print_u64;
+    use crate::engine::board::{tests::print_u64, self};
 
     pub fn moves_to_u64(moves: &Vec<Move>) -> u64 {
         moves.iter().fold(0u64, |b, m| {
@@ -218,7 +188,7 @@ pub mod tests {
         let res = generate_king_moves(&board);
         assert_eq!(0x2018000000000000, moves_to_u64(&res));
 
-        board[PieceType::Pawn] = 0;
+        board[PieceType::Pawn] = 0u64;
         board.set_bb(PieceType::Pawn, Color::Black, 0x820000000000000); // d8, f7
         let res = generate_king_moves(&board);
         assert_eq!(0x2838000000000000, moves_to_u64(&res));
@@ -276,7 +246,7 @@ pub mod tests {
         assert_eq!(0x21193e21210000, moves_to_u64(&res));
 
         board[PieceType::Pawn] = 0u64;
-        board.set_bb(PieceType::Pawn, Color::Black,  0x2100444000002100);
+        board.set_bb(PieceType::Pawn, Color::Black, 0x2100444000002100);
         let res = generate_rook_moves(&board);
         assert_eq!(0x21215d7e21212100, moves_to_u64(&res));
     }
@@ -335,12 +305,27 @@ pub mod tests {
     fn queen_moves_empty() {
         let mut board = Board::empty();
 
-        board[PieceType::Queen] = 0x4000000; // C4
+        board[PieceType::Queen] = 0x4000000; // c4
         let res = generate_queen_moves(&board);
         assert_eq!(0x4424150efb0e1524, moves_to_u64(&res));
 
-        board[PieceType::Queen] = 0x4008000; // C4 and H2
+        board[PieceType::Queen] = 0x4008000; // c4 and h2
         let res = generate_queen_moves(&board);
         assert_eq!(0xc6a49d9efbce7fe4, moves_to_u64(&res));
+    }
+
+    #[test]
+    fn queen_moves_blockers() {
+        let mut board = Board::empty();
+        board[PieceType::Queen] = 0x4000000; // c4
+
+        board[PieceType::Pawn] = 0x100041040000; // a4, c3, e6, g4
+        let res = generate_queen_moves(&board);
+        assert_eq!(0x404050e3a0a1120, moves_to_u64(&res));
+
+        board[PieceType::Pawn] = 0u64; // remove white blockers
+        board.set_bb(PieceType::Pawn, Color::Black, 0x100041040000); // a4, c3, e6, g4
+        let res = generate_queen_moves(&board);
+        assert_eq!(0x404150e7b0e1120, moves_to_u64(&res));
     }
 }

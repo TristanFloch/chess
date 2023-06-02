@@ -243,7 +243,6 @@ pub mod tests {
         assert_eq!(0xffff, board.friends_bb());
     }
 
-    #[ignore]
     #[test]
     fn legal_moves_pieces_start() {
         let board = Board::new();

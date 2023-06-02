@@ -103,3 +103,7 @@ pub fn knight_attacks_bb(sq: usize) -> u64 {
 
     attacks
 }
+
+pub fn queen_attacks_bb(sq: usize, blockers: u64) -> u64 {
+    rook_attacks_bb(sq, blockers) | bishop_attacks_bb(sq, blockers)
+}
