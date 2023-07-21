@@ -1,15 +1,17 @@
 use crate::engine::bits::BitOperations;
 use crate::engine::board::Board;
 use crate::engine::piece::{Color, PieceType};
-use crate::engine::position::Position;
+use crate::engine::position::{self, Position};
 use crate::engine::r#move::Move;
 use crate::engine::rules_bb::*;
+
+const A_FILE: u64 = 0x101010101010101;
 
 fn gen_attack_vec(pos: Position, mut attacks: u64, piece: PieceType, enemies: u64) -> Vec<Move> {
     let mut v = Vec::with_capacity(attacks.count_ones() as usize);
 
     while attacks != 0 {
-        let sq = attacks.lsb_index();
+        let sq = attacks.lsb_pop();
         v.push(Move {
             start: pos.clone(),
             end: sq.into(),
@@ -17,32 +19,90 @@ fn gen_attack_vec(pos: Position, mut attacks: u64, piece: PieceType, enemies: u6
 
             is_capture: enemies.test_bit(sq),
         });
-        attacks.lsb_pop();
     }
 
     v
 }
 
 pub fn generate_pawn_moves(board: &Board) -> Vec<Move> {
-    let mut pawns = board[PieceType::Pawn];
-    let mut attacks = if board.side_to_move == Color::White {
-        pawns << 8
-    } else {
-        pawns >> 8
-    };
-
-    let mut v = Vec::with_capacity(attacks.count_ones() as usize);
-    while attacks != 0 {
-        v.push(Move {
-            start: pawns.into(),
-            end: attacks.into(),
-            piece_type: PieceType::Pawn,
-
-            is_capture: false,
-        });
-        pawns.lsb_pop();
-        attacks.lsb_pop();
+    fn find_pusher(sq: usize, pawns: u64) -> Position {
+        let file = sq % 8;
+        let low_mask = (1u64 << sq) - 1;
+        let top_pawn_sq = ((pawns | (A_FILE >> file)) & low_mask).msb_index();
+        top_pawn_sq.into()
     }
+
+    let enemies = board.enemies_bb();
+    let blockers = enemies | board.friends_bb();
+    let empty = !blockers;
+
+    let pawns = board[PieceType::Pawn];
+    let single_pushes;
+    let double_pushes;
+    let west_attacks;
+    let west_attack_finder;
+    let east_attacks;
+    let east_attack_finder;
+
+    if board.side_to_move == Color::White {
+        single_pushes = white_pawns_pushes(pawns, empty);
+        double_pushes = white_pawns_double_pushes(single_pushes, empty);
+        (west_attacks, east_attacks) = white_pawns_attacks(pawns, enemies);
+        west_attack_finder = south_east_one;
+        east_attack_finder = south_west_one;
+    } else {
+        single_pushes = black_pawns_pushes(pawns, empty);
+        double_pushes = black_pawns_double_pushes(single_pushes, empty);
+        attacks = black_pawns_attacks(pawns, enemies);
+        attacker_finder = (
+            north_east_one as fn(u64) -> u64,
+            north_west_one as fn(u64) -> u64,
+        );
+    }
+
+    let mut v = Vec::with_capacity(
+        (single_pushes.count_ones()
+            + double_pushes.count_ones()
+            + west_attacks.count_ones()
+            + east_attacks.count_ones()) as usize,
+    );
+
+    for mut targets in [single_pushes, double_pushes] {
+        while targets != 0 {
+            let sq = targets.lsb_pop();
+            v.push(Move::new(
+                find_pusher(sq, pawns),
+                sq.into(),
+                PieceType::Pawn,
+            ));
+        }
+    }
+
+    while west_attacks != 0 {
+        let sq = west_attacks.lsb_pop();
+        let bb = 1u64 << sq;
+        v.push(Move {
+            // white only atm
+            start: (bb << 7).into(),
+            end: sq.into(),
+            piece_type: PieceType::Pawn,
+            is_capture: true,
+        });
+    }
+
+    while east_attacks != 0 {
+        let sq = east_attacks.lsb_pop();
+        let bb = 1u64 << sq;
+        v.push(Move {
+            // TODO
+            start: (bb << 7).into(),
+            end: sq.into(),
+            piece_type: PieceType::Pawn,
+            is_capture: true,
+        });
+    }
+
+    // TODO captures
 
     v
 }
@@ -144,7 +204,7 @@ pub fn generate_king_moves(board: &Board) -> Vec<Move> {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::engine::board::{tests::print_u64, self};
+    use crate::engine::board::tests::print_u64;
 
     pub fn moves_to_u64(moves: &Vec<Move>) -> u64 {
         moves.iter().fold(0u64, |b, m| {
@@ -293,12 +353,29 @@ pub mod tests {
 
         board[PieceType::Pawn] = 0x20429d00;
         let res = generate_pawn_moves(&board);
-        assert_eq!(0x20429d0000, moves_to_u64(&res));
+        assert_eq!(0x20df9d0000, moves_to_u64(&res));
 
         board.side_to_move = Color::Black;
+        board[PieceType::Pawn] = 0;
         board[PieceType::Pawn] = 0x20429d00000000;
         let res = generate_pawn_moves(&board);
-        assert_eq!(0x20429d000000, moves_to_u64(&res));
+        assert_eq!(0x20629d000000, moves_to_u64(&res));
+    }
+
+    #[test]
+    fn pawn_moves() {
+        let mut board = Board::empty();
+        board[PieceType::Pawn] = 0x20000020800d00; // a2, c2, d2, f4, f7, h3
+
+        let res = generate_pawn_moves(&board);
+        assert_eq!(0x200000208d0d0000, moves_to_u64(&res));
+        assert_eq!(9, res.len());
+
+        let blockers = 0x208001040000u64; // a4, c3, f6, h5
+        board[PieceType::Queen] = blockers;
+        let res = generate_pawn_moves(&board);
+        assert_eq!(0x2000002088090000, moves_to_u64(&res));
+        assert_eq!(6, res.len());
     }
 
     #[test]

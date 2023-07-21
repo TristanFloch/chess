@@ -1,5 +1,7 @@
 const NOT_A_FILE: u64 = 0xfefefefefefefefe;
 const NOT_H_FILE: u64 = 0x7f7f7f7f7f7f7f7f;
+const RANK_4: u64 = 0x00000000ff000000;
+const RANK_5: u64 = 0xff00000000;
 
 fn south_one(bb: u64) -> u64 {
     bb >> 8
@@ -15,6 +17,22 @@ fn east_one(bb: u64) -> u64 {
 
 fn west_one(bb: u64) -> u64 {
     (bb >> 1) & NOT_H_FILE
+}
+
+pub fn north_east_one(bb: u64) -> u64 {
+    (bb << 9) & NOT_A_FILE
+}
+
+pub fn south_east_one(bb: u64) -> u64 {
+    (bb >> 7) & NOT_A_FILE
+}
+
+pub fn south_west_one(bb: u64) -> u64 {
+    (bb >> 9) & NOT_H_FILE
+}
+
+pub fn north_west_one(bb: u64) -> u64 {
+    (bb << 7) & NOT_H_FILE
 }
 
 pub fn exclude_friends(attacks: u64, friends: u64) -> u64 {
@@ -106,4 +124,28 @@ pub fn knight_attacks_bb(sq: usize) -> u64 {
 
 pub fn queen_attacks_bb(sq: usize, blockers: u64) -> u64 {
     rook_attacks_bb(sq, blockers) | bishop_attacks_bb(sq, blockers)
+}
+
+pub fn white_pawns_pushes(bb: u64, empty: u64) -> u64 {
+    north_one(bb) & empty
+}
+
+pub fn black_pawns_pushes(bb: u64, empty: u64) -> u64 {
+    south_one(bb) & empty
+}
+
+pub fn white_pawns_double_pushes(single_pushes: u64, empty: u64) -> u64 {
+    north_one(single_pushes) & empty & RANK_4
+}
+
+pub fn black_pawns_double_pushes(single_pushes: u64, empty: u64) -> u64 {
+    south_one(single_pushes) & empty & RANK_5
+}
+
+pub fn white_pawns_attacks(bb: u64, enemies: u64) -> (u64, u64) {
+    (north_west_one(bb) & enemies, north_east_one(bb) & enemies)
+}
+
+pub fn black_pawns_attacks(bb: u64, enemies: u64) -> (u64, u64) {
+    (south_west_one(bb) & enemies, south_east_one(bb) & enemies)
 }
